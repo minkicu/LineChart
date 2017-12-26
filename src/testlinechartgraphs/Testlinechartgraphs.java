@@ -5,7 +5,13 @@
  */
 package testlinechartgraphs;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Random;
 import javafx.application.Application;
 import static javafx.application.Application.launch;
@@ -48,8 +54,8 @@ final static ObservableList<XYChart.Series<Number, Number>> lineChartData = FXCo
         lineChart.setTitle("Stock Monitoring, 2010");
         lineChart.setLegendSide(Side.RIGHT);
 
-        /* Random Gen 
-        
+        // Random Gen 
+        /*
         int randomCount = 2;//randomNumbers.nextInt(14)+1;
         //System.out.println("randomCount = " + randomCount);
         for (int i = 0; i < randomCount; i++) {
@@ -67,21 +73,22 @@ final static ObservableList<XYChart.Series<Number, Number>> lineChartData = FXCo
         
         
         XYChart.Series series1 = new XYChart.Series();
-        series1.setName("Inhouse");
+        series1.setName("Outward");
         
-        series1.getData().add(new XYChart.Data(1,20000));
-        series1.getData().add(new XYChart.Data(2,18000));
+        getdata(series1,"statdata");
+        
         
         XYChart.Series series2 = new XYChart.Series();
-        series2.setName("Outward");
+        series2.setName("Inhouse");
         
-        series2.getData().add(new XYChart.Data(1,25000));
-        series2.getData().add(new XYChart.Data(2,10000));
+        getdata(series2,"statdata_IH");
         
         lineChartData.add(series1);
         lineChartData.add(series2);
-
+        
+       
         lineChart.setData(lineChartData);
+        
 
         final StackPane chartContainer = new StackPane();
         chartContainer.getChildren()
@@ -133,6 +140,57 @@ final static ObservableList<XYChart.Series<Number, Number>> lineChartData = FXCo
         hBox.setStyle("-fx-padding: 0 10 20 10");
 
         return hBox;
+    }
+    
+    public static void getdata(XYChart.Series series,String Table){
+        Connection connect = null;
+        String connString=null;
+                
+		try {
+			Class.forName("com.microsoft.sqlserver.jdbc.SQLServerDriver");
+                        connString = "jdbc:sqlserver://172.30.132.75;DatabaseName=tfb_inreturn;user=su;Password=ncr";
+			connect = DriverManager.getConnection(connString);
+                        //connect =  DriverManager.getConnection("jdbc:sqlserver://172.30.132.75:1433;DatabaseName=TFB_Image;user=su;Password=ncr");
+			if(connect != null){
+				//System.out.println("Database Connected.");
+                                Statement statement = connect.createStatement();
+                                
+                                
+                                String queryString = "select ProcessingDate,SUM(Chq1_total) Total from "+Table+" where Processingdate > '2015-01-01' group by ProcessingDate order by 1";
+                          
+                                ResultSet rs = statement.executeQuery(queryString);
+                                int i=0;
+                                int total=0;
+                                while (rs.next()) {
+                                    i+=1;
+                                    total = Integer.parseInt(rs.getString(rs.findColumn("Total")));
+                                    
+                                    //System.out.println(i+" ");
+
+                                   series.getData().add(new XYChart.Data(i,total));
+                                    //byte[] decodedBytes = decoder.decodeBuffer(imgaeEncode);
+                                    
+                                    //System.out.println("-- decode --\n"+ new String(decodedBWF, "utf-8") );
+                                    
+                                    //return new String(decoded, "utf-8");
+                                   
+                                    
+                                }
+			} else {
+				System.out.println("Database Connect Failed.");
+			}
+			
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		try {
+			connect.close();
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     }
 
     public static void main(String[] args) {
